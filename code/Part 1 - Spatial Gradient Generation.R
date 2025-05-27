@@ -2,7 +2,7 @@
 ########################################################################
 ## ANALYSIS CODE FOR: [PAPER TITLE]
 ## Authors: [AUTHORS]
-## Last Updated: May 13, 2025
+## Last Updated: May 27, 2025
 ########################################################################
 ## This script performs spatial gradient analysis for culling pressure and land use
 ## The code creates spatially smoothed layers using circular kernels with exponential decay
