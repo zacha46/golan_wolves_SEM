@@ -21,22 +21,25 @@ pacman::p_load(
 )
 
 ### Assign where you have stored your data
-personal_path = "~/Dropbox/UQ 2024/Collaboration_Shlomo/Shlomo_R_code_for_git_via_zach/"
+#personal_path = "~/Dropbox/UQ 2024/Collaboration_Shlomo/Shlomo_R_code_for_git_via_zach/"
+personal_path = "C:/Users/preissbloom/OneDrive - Tel-Aviv University/Golan Wolf Study/Paper - Trophic Thunder/Golan Codes and Dataframes for Github/"
 
 
 # Load raster (example: boar culling, nature reserves etc.) where all values are either 0 or 1
-r <- raster(paste(personal_path,"boar_culling_raster.tif", sep = "")) ## NOT PRESENT! CANNOT TEST! 
+r1 <- raster(paste(personal_path,"boar_culling_raster.tif", sep = "")) 
+r2 <- raster(paste(personal_path,"nature_reserves_raster.tif", sep = "")) 
 
-# Replace NA with 0 and save corrected raster
-r[is.na(r[])] <- 0
-writeRaster(r, "D:/Golan Wolves GIS/0_1_Rasters/Shootings_10YR_TimeDecay_0_1.tif")
+# Replace NA with 0 just in case some values are NA 
+r1[is.na(r1[])] <- 0
+r2[is.na(r2[])] <- 0
+
 
 # Parameters for kernel creation
 kernel_radius_m <- 7000       # Radius in meters
 decay_factor <- 0.01          # Controls how quickly the effect diminishes with distance
 
 # Define a circular kernel (7km radius) with exponential decay
-d1 <- focalWeight(r, kernel_radius_m, "circle")
+d1 <- focalWeight(r1, kernel_radius_m, "circle")
 d1[d1 != 0] <- 1  # Normalize to binary circle
 
 # Create exponential decay weights based on 25m resolution
@@ -53,21 +56,25 @@ my_circle %>%
   geom_tile()
 
 # Apply spatial filter using custom kernel
-the_focus <- focal(r, my_circle, fun = sum, na.rm = FALSE, pad = TRUE, padValue = 0)
-plot(the_focus)
-writeRaster(the_focus, "Boar Culling Focal.tif")
+the_focus_1 <- focal(r1, my_circle, fun = sum, na.rm = FALSE, pad = TRUE, padValue = 0)
+plot(the_focus_1)
+writeRaster(the_focus_1, "Boar Culling Focal.tif")
 
+# Apply spatial filter using custom kernel
+the_focus_2 <- focal(r2, my_circle, fun = sum, na.rm = FALSE, pad = TRUE, padValue = 0)
+plot(the_focus_2)
+writeRaster(the_focus_2, "Nature Reserves Culling Focal.tif")
 
 #Once you have all your rasters, stack them together and extract the values at the coordinates of each site
 
 #Stack rasters
-Rastack10 <- stack(r3,r7,r9,r10,r14)
+Rastack <- stack(r1,r2)
 
 #Load camera trap coordinates
 pointCoordinates <- read.csv(r"(Camera Coordinates CSV.csv)")
 
 #Convert to spatial points
-coordinates(pointCoordinates) <- ~ Longitude+Latitude
+coordinates(pointCoordinates) <- ~ Longitude + Latitude
 
 #Extract raster values at camera locations
 rasvalue <- raster::extract(Rastack, pointCoordinates)
