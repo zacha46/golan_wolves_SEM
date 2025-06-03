@@ -1,4 +1,5 @@
 #####PART 2: N-mixture models (Detection and State) for species abundance
+## Last Updated: 03 June 2025
 
 # Install required packages if not already installed
 required_packages <- c("unmarked", "data.table", "tidyverse", "raster", "ggplot2", "AICcmodavg")
@@ -21,20 +22,23 @@ library(AICcmodavg)
 rm(list=ls(all=TRUE))
 
 # Load camera trap detection and covariate data
-# setwd("D:/ShlomoPB/OneDrive - Tel-Aviv University/Golan Wolf Study/Wolf Reports and Excels")   # for Shlomo
-setwd("~/Dropbox/UQ 2024/Collaboration_Shlomo/Shlomo_R_code_for_git_via_zach/")                # for Zach 
+ setwd("C:/Users/preissbloom/OneDrive - Tel-Aviv University/Golan Wolf Study/Paper - Trophic Thunder/Golan Codes and Dataframes for Github")   # for Shlomo
+#setwd("~/Dropbox/UQ 2024/Collaboration_Shlomo/Shlomo_R_code_for_git_via_zach/")                # for Zach 
 
 #Import detection histories for the four species
-# y_w <- read.csv("Wolf Detection History for Manuscript.csv") # not present
-y_w <- read.csv("Wolf Detection History Unmarked Format.csv")
+y_w <- read.csv("Canis_Lupus_Abundance.csv")
 y_j <- read.csv("Canis_aureus_Abundance.csv")
 y_b <- read.csv("Sus_scrofa_Abundance.csv")
 y_g <- read.csv("Gazella_gazella_Abundance.csv")
 
+# Remove the first column (camera name) from y_w and y_j
+y_w <- y_w[, -1]
+y_j <- y_j[, -1]
+
 #Load site and observation covariates
 siteCovs <- read.csv("SiteCovs_060324.csv")
 # obsCovs <- read.csv("Detection Covariates_For_MS.csv") # not present
-obsCovs <- read.csv("Detection Covariates.csv")
+obsCovs <- read.csv("ObsCovs_050524.csv")
 
 
 #Make sure all siteCovs and obsCovs characters are factors for unmarked
@@ -43,143 +47,170 @@ obsCovs[sapply(obsCovs, is.character)] <- lapply(obsCovs[sapply(obsCovs, is.char
 
 
 # Construct unmarked frames
-umf_pcount_w <- unmarkedFramePCount(y = y_w, siteCovs = siteCovs, obsCovs = obsCovs) # error --> cant proceed w/ testing
-umf_pcount_j <- unmarkedFramePCount(y = y_j, siteCovs = siteCovs, obsCovs = obsCovs) # error --> cant proceed w/ testing
+umf_pcount_w <- unmarkedFramePCount(y = y_w, siteCovs = siteCovs, obsCovs = obsCovs) 
+umf_pcount_j <- unmarkedFramePCount(y = y_j, siteCovs = siteCovs, obsCovs = obsCovs) 
 umf_pcount_b <- unmarkedFramePCount(y = y_b, siteCovs = siteCovs, obsCovs = obsCovs)
 umf_pcount_g <- unmarkedFramePCount(y = y_g, siteCovs = siteCovs, obsCovs = obsCovs)
 
 # Test WOLF null model
-wm1 <- pcount(~1 ~1, umf_pcount_w, mixture = "ZIP")
+Wolf_null <- pcount(~1 ~1, umf_pcount_w, mixture = "ZIP")
 
 # Test WOLF detection functions with individual and multiple covariates
-models_detection <- list(
-  Agri = pcount(~Agricultural.Presence ~1, umf_pcount_w, mixture = "ZIP"),
-  Cattle = pcount(~Cattle.Sightings ~1, umf_pcount_w, mixture = "ZIP"),
-  Model = pcount(~Camera.Model ~1, umf_pcount_w, mixture = "ZIP"),
-  Delay = pcount(~Capture.Delay ~1, umf_pcount_w, mixture = "ZIP"),
-  Veg = pcount(~Vegetation.Structure ~1, umf_pcount_w, mixture = "ZIP"),
-  Path = pcount(~Path.Type ~1, umf_pcount_w, mixture = "ZIP"),
-  BehindCam = pcount(~Area.Behind.Camera ~1, umf_pcount_w, mixture = "ZIP"),
-  Bottleneck = pcount(~Bottleneck. ~1, umf_pcount_w, mixture = "ZIP"),
-  wm2 = pcount(~Path.Type + Camera.Model + Bottleneck. ~ 1, umf_pcount_w, mixture = "ZIP"),
-  wm3 = pcount(~Path.Type + Camera.Model ~1, umf_pcount_w, mixture = "ZIP"),
-  wm4 = pcount(~Path.Type + Camera.Model + Cattle.Sightings ~1, umf_pcount_w, mixture = "ZIP"),
-  wm5 = pcount(~Path.Type + Camera.Model + Area.Behind.Camera ~1, umf_pcount_w, mixture = "ZIP"),
-  wm6 = pcount(~Cattle.Sightings + Path.Type + Camera.Model + Area.Behind.Camera ~1, umf_pcount_w, mixture = "ZIP"),
-  wm7 = pcount(~Cattle.Sightings + Path.Type + Camera.Model ~1, umf_pcount_w, mixture = "ZIP"),
-  wm8 = pcount(~Cattle.Sightings + Camera.Model + Bottleneck. ~1, umf_pcount_w, mixture = "ZIP"),
-  wm85 = pcount(~Cattle.Sightings + Path.Type + Camera.Model + Area.Behind.Camera + Bottleneck. ~1, umf_pcount_w, mixture = "ZIP"),
-  wm87 = pcount(~Cattle.Sightings + Camera.Model + Agricultural.Presence + Bottleneck. ~1, umf_pcount_w, mixture = "ZIP"),
-  wm9 = pcount(~Path.Type + Camera.Model + Area.Behind.Camera + Bottleneck. ~1, umf_pcount_w, mixture = "ZIP"),
-  wm10 = pcount(~Path.Type + Camera.Model + Vegetation.Structure + Area.Behind.Camera ~ 1, umf_pcount_w, mixture = "ZIP")
-)
 
-# Compare models
-fitList(c(Null = list(wm1), models_detection)) %>%
-  modSel(nullmod = "Null") %>%
-  as("data.frame") %>%
-  write.csv("Wolf_Detection_Functions_All.csv", row.names = FALSE)
+  Agri = pcount(~Agricultural.Presence ~1, umf_pcount_w, mixture = "ZIP")
+  Cattle = pcount(~Cattle.Sightings ~1, umf_pcount_w, mixture = "ZIP")
+  Model = pcount(~Camera.Model ~1, umf_pcount_w, mixture = "ZIP")
+  Delay = pcount(~Capture.Delay ~1, umf_pcount_w, mixture = "ZIP")
+  Veg = pcount(~Vegetation.Structure ~1, umf_pcount_w, mixture = "ZIP")
+  Path = pcount(~Path.Type ~1, umf_pcount_w, mixture = "ZIP")
+  BehindCam = pcount(~Area.Behind.Camera ~1, umf_pcount_w, mixture = "ZIP")
+  Bottleneck = pcount(~Bottleneck. ~1, umf_pcount_w, mixture = "ZIP")
+  wd2 = pcount(~Path.Type + Camera.Model + Bottleneck. ~ 1, umf_pcount_w, mixture = "ZIP")
+  wd3 = pcount(~Path.Type + Camera.Model ~1, umf_pcount_w, mixture = "ZIP")
+  wd4 = pcount(~Path.Type + Camera.Model + Cattle.Sightings ~1, umf_pcount_w, mixture = "ZIP")
+  wd5 = pcount(~Path.Type + Camera.Model + Area.Behind.Camera ~1, umf_pcount_w, mixture = "ZIP")
+  wd6 = pcount(~Cattle.Sightings + Path.Type + Camera.Model + Area.Behind.Camera ~1, umf_pcount_w, mixture = "ZIP")
+  wd7 = pcount(~Cattle.Sightings + Path.Type + Camera.Model ~1, umf_pcount_w, mixture = "ZIP")
+  wd8 = pcount(~Cattle.Sightings + Camera.Model + Bottleneck. ~1, umf_pcount_w, mixture = "ZIP")
+  wd85 = pcount(~Cattle.Sightings + Path.Type + Camera.Model + Area.Behind.Camera + Bottleneck. ~1, umf_pcount_w, mixture = "ZIP")
+  wd87 = pcount(~Cattle.Sightings + Camera.Model + Agricultural.Presence + Bottleneck. ~1, umf_pcount_w, mixture = "ZIP")
+  wd9 = pcount(~Path.Type + Camera.Model + Area.Behind.Camera + Bottleneck. ~1, umf_pcount_w, mixture = "ZIP")
+  wd10 = pcount(~Path.Type + Camera.Model + Vegetation.Structure + Area.Behind.Camera ~ 1, umf_pcount_w, mixture = "ZIP")
+
+  
+  # Combine into a named list for model selection
+  wolf_detection_models <- list(Null = Wolf_null, Agri = Agri, Cattle = Cattle, 
+    Model = Model, Delay = Delay, Veg = Veg, Path = Path, BehindCam = BehindCam,
+    Bottleneck = Bottleneck, wd2 = wd2, wd3 = wd3, wd4 = wd4, wd5 = wd5, wd6 = wd6,
+    wd7 = wd7, wd8 = wd8, wd85 = wd85, wd87 = wd87, wd9 = wd9, wd10 = wd10 )
+  
+  # Rank models by AIC
+  wolf_detection_models_ranked <- fitList(fits = wolf_detection_models) %>%
+    modSel(nullmod = "Null") %>%
+    as("data.frame")
+  
+  # Optional: write ranked models to CSV
+  # write.csv(wolf_detection_models_ranked, "wolf_detection_models_ranked.csv", row.names = FALSE)  
 
 # Jackal detection function
+ 
+   # Test JACKAL null model
+  Jackal_null <- pcount(~1 ~1, umf_pcount_j, mixture = "ZIP")
+  
+  # Test JACKAL detection functions with individual and multiple covariates
+  j_Agri        <- pcount(~Agricultural.Presence ~1, umf_pcount_j, mixture = "ZIP")
+  j_Cattle      <- pcount(~Cattle.Sightings ~1, umf_pcount_j, mixture = "ZIP")
+  j_Model       <- pcount(~Camera.Model ~1, umf_pcount_j, mixture = "ZIP")
+  j_Delay       <- pcount(~Capture.Delay ~1, umf_pcount_j, mixture = "ZIP")
+  j_Veg         <- pcount(~Vegetation.Structure ~1, umf_pcount_j, mixture = "ZIP")
+  j_Path        <- pcount(~Path.Type ~1, umf_pcount_j, mixture = "ZIP")
+  j_BehindCam   <- pcount(~Area.Behind.Camera ~1, umf_pcount_j, mixture = "ZIP")
+  j_Bottleneck  <- pcount(~Bottleneck. ~1, umf_pcount_j, mixture = "ZIP")
+  
+  # Combined detection models
+  jm2   <- pcount(~Path.Type + Camera.Model + Bottleneck. ~1, umf_pcount_j, mixture = "ZIP")
+  jd3   <- pcount(~Path.Type + Camera.Model ~1, umf_pcount_j, mixture = "ZIP")
+  jd4   <- pcount(~Path.Type + Camera.Model + Cattle.Sightings ~1, umf_pcount_j, mixture = "ZIP")
+  jd5   <- pcount(~Path.Type + Camera.Model + Area.Behind.Camera ~1, umf_pcount_j, mixture = "ZIP")
+  jd6   <- pcount(~Cattle.Sightings + Path.Type + Camera.Model + Area.Behind.Camera ~1, umf_pcount_j, mixture = "ZIP")
+  jd7   <- pcount(~Cattle.Sightings + Path.Type + Camera.Model ~1, umf_pcount_j, mixture = "ZIP")
+  jd8   <- pcount(~Cattle.Sightings + Camera.Model + Bottleneck. ~1, umf_pcount_j, mixture = "ZIP")
+  jd85  <- pcount(~Cattle.Sightings + Path.Type + Camera.Model + Area.Behind.Camera + Bottleneck. ~1, umf_pcount_j, mixture = "ZIP")
+  jd87  <- pcount(~Cattle.Sightings + Camera.Model + Agricultural.Presence + Bottleneck. ~1, umf_pcount_j, mixture = "ZIP")
+  jd9   <- pcount(~Path.Type + Camera.Model + Area.Behind.Camera + Bottleneck. ~1, umf_pcount_j, mixture = "ZIP")
+  jd10  <- pcount(~Path.Type + Camera.Model + Vegetation.Structure + Area.Behind.Camera ~1, umf_pcount_j, mixture = "ZIP")
+  
+  
+  jackal_detection_models <- list(
+    Null = Jackal_null, j_Agri = j_Agri, j_Cattle = j_Cattle, j_Model = j_Model, 
+    j_Delay = j_Delay, j_Veg = j_Veg, j_Path = j_Path, j_BehindCam = j_BehindCam, 
+    j_Bottleneck = j_Bottleneck, jd2 = jd2, jd3 = jd3, jd4 = jd4, jd5 = jd5, 
+    jd6 = jd6, jd7 = jd7, jd8 = jd8, jd85 = jd85, jd87 = jd87, jd9 = jd9, jd10 = jd10
+  )
+  
+  jackal_detection_models_ranked <- fitList(fits = jackal_detection_models) %>%
+    modSel(nullmod = "Null") %>%
+    as("data.frame")
+  
 
-# Test JACKAL null model
-jm1 <- pcount(~1 ~1, umf_pcount_j)
-
-jackal_models_detection <- list(
-  Cattle = pcount(~Cattle.Sightings ~1, umf_pcount_j),
-  Model = pcount(~Camera.Model ~1, umf_pcount_j),
-  Sensitivity = pcount(~Camera.Sensitivity ~1, umf_pcount_j),
-  Delay = pcount(~Capture.Delay ~1, umf_pcount_j),
-  Veg = pcount(~Vegetation.Structure ~1, umf_pcount_j),
-  Path = pcount(~Path.Type ~1, umf_pcount_j),
-  BehindCam = pcount(~Area.Behind.Camera ~1, umf_pcount_j),
-  Bottleneck = pcount(~Bottleneck. ~1, umf_pcount_j),
-  jm2 = pcount(~Path.Type + Camera.Model + Bottleneck. ~ 1, umf_pcount_j),
-  jm3 = pcount(~Path.Type + Camera.Model ~1, umf_pcount_j),
-  jm4 = pcount(~Path.Type + Camera.Model + Cattle.Sightings ~1, umf_pcount_j),
-  jm5 = pcount(~Path.Type + Camera.Model + Area.Behind.Camera ~1, umf_pcount_j),
-  jm6 = pcount(~Cattle.Sightings + Path.Type + Camera.Model + Area.Behind.Camera ~1, umf_pcount_j),
-  jm7 = pcount(~Cattle.Sightings + Path.Type + Camera.Model ~1, umf_pcount_j),
-  jm8 = pcount(~Cattle.Sightings + Camera.Model + Bottleneck. ~1, umf_pcount_j),
-  jm85 = pcount(~Cattle.Sightings + Path.Type + Camera.Model + Area.Behind.Camera + Bottleneck. ~1, umf_pcount_j),
-  jm87 = pcount(~Cattle.Sightings + Camera.Model + Agricultural.Presence + Bottleneck. ~1, umf_pcount_j),
-  jm9 = pcount(~Path.Type + Camera.Model + Area.Behind.Camera + Bottleneck. ~1, umf_pcount_j),
-  jm10 = pcount(~Path.Type + Camera.Model + Vegetation.Structure + Area.Behind.Camera ~ 1, umf_pcount_j)
-)
-
-# Compare all jackal detection models
-fitList(c(Null = list(jm1), jackal_models_detection)) %>%
-  modSel(nullmod = "Null") %>%
-  as("data.frame") %>%
-  write.csv("Jackal_Detection_Functions_All.csv", row.names = FALSE)
-
+  # Optional: write ranked models to CSV
+  # write.csv(jackal_detection_models_ranked, "jackal_detection_models_ranked.csv", row.names = FALSE)  
+  
 # BOAR detection function
 
-# Boar detection function
-
-# Null model
-bm1 <- pcount(~1 ~1, umf_pcount_b)
-
-# Boar detection models
-boar_models_detection <- list(
-  Cattle = pcount(~Cattle.Sightings ~1, umf_pcount_b),
-  Model = pcount(~Camera.Model ~1, umf_pcount_b),
-  Sensitivity = pcount(~Camera.Sensitivity ~1, umf_pcount_b),
-  Delay = pcount(~Capture.Delay ~1, umf_pcount_b),
-  Veg = pcount(~Vegetation.Structure ~1, umf_pcount_b),
-  Path = pcount(~Path.Type ~1, umf_pcount_b),
-  BehindCam = pcount(~Area.Behind.Camera ~1, umf_pcount_b),
-  Bottleneck = pcount(~Bottleneck. ~1, umf_pcount_b),
-  Livestock = pcount(~Livestock.Present. ~1, umf_pcount_b),
-  Agri = pcount(~Agricultural.Presence ~1, umf_pcount_b),
+  # Test BOAR null model
+  Boar_null <- pcount(~1 ~1, umf_pcount_b, mixture = "ZIP")
   
-  bm2 = pcount(~Path.Type + Camera.Model ~1, umf_pcount_b),
-  bm3 = pcount(~Path.Type + Camera.Model + Area.Behind.Camera ~1, umf_pcount_b),
-  bm4 = pcount(~Path.Type + Camera.Model + Area.Behind.Camera + Bottleneck. ~1, umf_pcount_b),
-  bm5 = pcount(~Path.Type + Camera.Model + Vegetation.Structure ~1, umf_pcount_b),
-  bm6 = pcount(~Path.Type + Camera.Model + Vegetation.Structure + Area.Behind.Camera ~1, umf_pcount_b)
-)
-
-# Compare all boar detection models
-fitList(c(Null = list(bm1), boar_models_detection)) %>% ## error --> cant save
-  modSel(nullmod = "Null") %>%
-  as("data.frame") %>%
-  write.csv("Boar_Detection_Models_All.csv", row.names = FALSE)
-
-
+  # Test BOAR detection functions
+  boar_Cattle     <- pcount(~Cattle.Sightings ~1, umf_pcount_b, mixture = "ZIP")
+  boar_Model      <- pcount(~Camera.Model ~1, umf_pcount_b, mixture = "ZIP")
+  boar_Sens       <- pcount(~Camera.Sensitivity ~1, umf_pcount_b, mixture = "ZIP")
+  boar_Delay      <- pcount(~Capture.Delay ~1, umf_pcount_b, mixture = "ZIP")
+  boar_Veg        <- pcount(~Vegetation.Structure ~1, umf_pcount_b, mixture = "ZIP")
+  boar_Path       <- pcount(~Path.Type ~1, umf_pcount_b, mixture = "ZIP")
+  boar_BehindCam  <- pcount(~Area.Behind.Camera ~1, umf_pcount_b, mixture = "ZIP")
+  boar_Bottleneck <- pcount(~Bottleneck. ~1, umf_pcount_b, mixture = "ZIP")
+  boar_Livestock  <- pcount(~Livestock.Present. ~1, umf_pcount_b, mixture = "ZIP")
+  boar_Agri       <- pcount(~Agricultural.Presence ~1, umf_pcount_b, mixture = "ZIP")
+  bd2  <- pcount(~Path.Type + Camera.Model ~1, umf_pcount_b, mixture = "ZIP")
+  bd3  <- pcount(~Path.Type + Camera.Model + Area.Behind.Camera ~1, umf_pcount_b, mixture = "ZIP")
+  bd4  <- pcount(~Path.Type + Camera.Model + Area.Behind.Camera + Bottleneck. ~1, umf_pcount_b, mixture = "ZIP")
+  bd5  <- pcount(~Path.Type + Camera.Model + Vegetation.Structure ~1, umf_pcount_b, mixture = "ZIP")
+  bd6  <- pcount(~Path.Type + Camera.Model + Vegetation.Structure + Area.Behind.Camera ~1, umf_pcount_b, mixture = "ZIP")
+  
+  # Combine into a named list for model selection
+  boar_detection_models <- list(
+    Null = Boar_null, Cattle = boar_Cattle, Model = boar_Model, Sens = boar_Sens,
+    Delay = boar_Delay, Veg = boar_Veg, Path = boar_Path, BehindCam = boar_BehindCam,
+    Bottleneck = boar_Bottleneck, Livestock = boar_Livestock, Agri = boar_Agri,
+    bd2 = bd2, bd3 = bd3, bd4 = bd4, bd5 = bd5, bd6 = bd6
+  )
+  
+  # Rank models by AIC
+  boar_detection_models_ranked <- fitList(fits = boar_detection_models) %>%
+    modSel(nullmod = "Null") %>%
+    as("data.frame")
+  
+  # Optional: write ranked models to CSV
+  # write.csv(boar_detection_models_ranked, "boar_detection_models_ranked.csv", row.names = FALSE)  
 
 # GAZELLE detection function
 
-
-# Test GAZELLE null model
-g20 <- pcount(~1 ~1, umf_pcount_g)
-
-gazelle_models_detection <- list(
-  g21 = pcount(~Cattle.Sightings ~1, umf_pcount_g),
-  g22 = pcount(~Camera.Model ~1, umf_pcount_g),
-  g23 = pcount(~Camera.Sensitivity ~1, umf_pcount_g),
-  g24 = pcount(~Livestock.Present. ~1, umf_pcount_g),
-  g25 = pcount(~Capture.Delay ~1, umf_pcount_g),
-  g26 = pcount(~Vegetation.Structure ~1, umf_pcount_g),
-  g27 = pcount(~Path.Type ~1, umf_pcount_g),
-  g28 = pcount(~Area.Behind.Camera ~1, umf_pcount_g),
-  g29 = pcount(~Bottleneck. ~1, umf_pcount_g),
-  g30 = pcount(~Agricultural.Presence ~1, umf_pcount_g),
-  g3 = pcount(~Path.Type + Camera.Model ~1, umf_pcount_g),
-  g5 = pcount(~Path.Type + Camera.Model + Area.Behind.Camera ~1, umf_pcount_g),
-  g8 = pcount(~Path.Type + Camera.Model + Area.Behind.Camera + Bottleneck. ~1, umf_pcount_g),
-  g10 = pcount(~Path.Type + Camera.Model + Vegetation.Structure + Area.Behind.Camera ~1, umf_pcount_g),
-  g11 = pcount(~Path.Type + Camera.Model + Vegetation.Structure ~1, umf_pcount_g)
-)
-
-# Compare all gazelle detection models
-fitList(c(Null = list(g20), gazelle_models_detection)) %>%
-  modSel(nullmod = "Null") %>%
-  as("data.frame") %>%
-  write.csv("Gazelle_Detection_Models.csv", row.names = FALSE)
-
-
-
+  # Test GAZELLE null model
+  Gazelle_null <- pcount(~1 ~1, umf_pcount_g, mixture = "ZIP")
+  
+  # Test GAZELLE detection functions
+  gaz_Cattle     <- pcount(~Cattle.Sightings ~1, umf_pcount_g, mixture = "ZIP")
+  gaz_Model      <- pcount(~Camera.Model ~1, umf_pcount_g, mixture = "ZIP")
+  gaz_Sens       <- pcount(~Camera.Sensitivity ~1, umf_pcount_g, mixture = "ZIP")
+  gaz_Livestock  <- pcount(~Livestock.Present. ~1, umf_pcount_g, mixture = "ZIP")
+  gaz_Delay      <- pcount(~Capture.Delay ~1, umf_pcount_g, mixture = "ZIP")
+  gaz_Veg        <- pcount(~Vegetation.Structure ~1, umf_pcount_g, mixture = "ZIP")
+  gaz_Path       <- pcount(~Path.Type ~1, umf_pcount_g, mixture = "ZIP")
+  gaz_BehindCam  <- pcount(~Area.Behind.Camera ~1, umf_pcount_g, mixture = "ZIP")
+  gaz_Bottleneck <- pcount(~Bottleneck. ~1, umf_pcount_g, mixture = "ZIP")
+  gaz_Agri       <- pcount(~Agricultural.Presence ~1, umf_pcount_g, mixture = "ZIP")
+  gd3  <- pcount(~Path.Type + Camera.Model ~1, umf_pcount_g, mixture = "ZIP")
+  gd5  <- pcount(~Path.Type + Camera.Model + Area.Behind.Camera ~1, umf_pcount_g, mixture = "ZIP")
+  gd8  <- pcount(~Path.Type + Camera.Model + Area.Behind.Camera + Bottleneck. ~1, umf_pcount_g, mixture = "ZIP")
+  gd10 <- pcount(~Path.Type + Camera.Model + Vegetation.Structure + Area.Behind.Camera ~1, umf_pcount_g, mixture = "ZIP")
+  gd11 <- pcount(~Path.Type + Camera.Model + Vegetation.Structure ~1, umf_pcount_g, mixture = "ZIP")
+  
+  # Combine into a named list for model selection
+  gazelle_detection_models <- list(
+    Null = Gazelle_null, Cattle = gaz_Cattle, Model = gaz_Model, Sens = gaz_Sens,
+    Livestock = gaz_Livestock, Delay = gaz_Delay, Veg = gaz_Veg, Path = gaz_Path,
+    BehindCam = gaz_BehindCam, Bottleneck = gaz_Bottleneck, Agri = gaz_Agri,
+    gd3 = gd3, gd5 = gd5, gd8 = gd8, gd10 = gd10, gd11 = gd11
+  )
+  
+  # Rank models by AIC
+  gazelle_detection_models_ranked <- fitList(fits = gazelle_detection_models) %>%
+    modSel(nullmod = "Null") %>%
+    as("data.frame")
+  
+  # Optional: write ranked models to CSV
+  # write.csv(gazelle_detection_models_ranked, "gazelle_detection_models_ranked.csv", row.names = FALSE)  
 
 ######## Generate site-level abundance estimates for each species at each site #####
 
@@ -220,13 +251,12 @@ estimate_site_activity <- function(model, species_name, nsims = 500) {
   return(activity_df)
 }
 
-# Estimate site activity for WOLF, JACKAL, BOAR and GAZELLE
+# Estimate site activity for WOLF, JACKAL, BOAR and GAZELLE using the best detection function for each species
 
-wolf_activity <- estimate_site_activity(Wolf_models_state$Null, "Wolf")
-jackal_activity <- estimate_site_activity(jackal_models_state$Null, "Jackal")
-boar_activity <- estimate_site_activity(boar_models_state$Null, "Boar")
-gazelle_activity <- estimate_site_activity(gazelle_models_state$Null, "Gazelle")
-
+wolf_activity <- estimate_site_activity(wd10, "Wolf")
+jackal_activity <- estimate_site_activity(jd10, "Jackal")
+boar_activity <- estimate_site_activity(bd6, "Boar")
+gazelle_activity <- estimate_site_activity(gd10, "Gazelle")
 
 #These estimates and their SEs get added to the SiteCovs data frame
 
@@ -418,8 +448,6 @@ Gazelle_models_state <- list(
   
   gm0 = pcount(~Path.Type + Camera.Model + Vegetation.Structure + Area.Behind.Camera ~ 1, umf_pcount_g),
   
-  gm1 = pcount(~Path.Type + Camera.Model + Vegetation.Structure + Area.Behind.Camera ~ Predicted.Wolf.Abundance, umf_pcount_g),
-  
   gm2 = pcount(~Path.Type + Camera.Model + Vegetation.Structure + Area.Behind.Camera ~ Null.Wolf.Abundance, umf_pcount_g),
   
   gm3 = pcount(~Path.Type + Camera.Model + Vegetation.Structure + Area.Behind.Camera ~ Built.and.Roads, umf_pcount_g),
@@ -458,6 +486,6 @@ write.csv(as(Gazelle_models_state_selection, "data.frame"), "Gazelle_Abundance_M
 #Now that we've ranked all the abundance models, we can check their goodness of fit
 
 ##compute observed chi-square, assess significance, and estimate c-hat
-obs.boot <- Nmix.gof.test(gm11, nsim = 100)
+obs.boot <- Nmix.gof.test(wm393, nsim = 100)
 obs.boot
 print(obs.boot, digits.vals = 4, digits.chisq = 4)
